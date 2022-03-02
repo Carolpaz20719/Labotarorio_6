@@ -30,17 +30,17 @@ PROCESSOR 16F887
 // config statements should precede project file includes.
 #include <xc.inc>
 
-; --------------------MACROS----------------------
+;---------------------MACROS----------------------
 
 Timer_reset MACRO TMR_VAR
     BANKSEL TMR0	    ; cambiamos de banco
-    MOVLW   TMR_VAR	    
+    MOVLW   TMR_VAR	    ; Literal a guardar en TMR_VAR
     MOVWF   TMR0	    ; configura tiempo de retardo (10ms de retardo)
     BCF	    T0IF	    ; limpiamos bandera de interrupción
     ENDM 
   
-TMR1_reset MACRO TMR1_H, TMR1_L	 ; Esta es la forma correcta
-    BANKSEL TMR1H
+TMR1_reset MACRO TMR1_H, TMR1_L	
+    BANKSEL TMR1H	    ; Cambiamos de banco
     MOVLW   TMR1_H	    ; Literal a guardar en TMR1H
     MOVWF   TMR1H	    ; Guardamos literal en TMR1H
     MOVLW   TMR1_L	    ; Literal a guardar en TMR1L
@@ -53,12 +53,12 @@ PSECT udata_shr		    ; Memoria compartida
     W_TEMP:		DS 1
     STATUS_TEMP:	DS 1
     
-PSECT udata_bank0           ; Reservar memoria
+PSECT udata_bank0               ; Reservar memoria
     cont_seg:		DS 1    ; Contiene el valor de segundos
     valor:		DS 1	; Contiene valor a mostrar en los displays de 7-seg
     banderas:		DS 1	; Indica que display hay que encender
-    num:                DS 2    ;
-    display:		DS 2	; Representación de cada nibble en el display de 7-seg
+    num:                DS 2    ; Contiene el valor de las decenas y unidades
+    display:		DS 2	; Representación de cada número en el display de 7-seg
    
 PSECT resVect, class=CODE, abs, delta=2
 ORG 00h	    ; posición 0000h para el reset
@@ -100,30 +100,30 @@ ORG 100h                    ; posición 100h para el codigo
 ;-------------SUBRUTINAS DE INTERRUPCION--------
 INT_TMR0:
     Timer_reset	252	    ; Llamar la macro del Timer_reset
-    CALL    MOSTRAR_VALOR   ; Mostramos valor en hexadecimal en los displays
+    CALL    MOSTRAR_VALOR   ; Mostramos valor en decimal en los displays
     RETURN
     
 INT_TMR1:
     TMR1_reset 0xC2, 0xF7   ; Reiniciamos TMR1 para 1000m
-    MOVLW   60
+    MOVLW   60		    ; Mover la litaral a W
     INCF    PORTA           ; Incrementar 1 y guardaar 
-    SUBWF   PORTA, W        ; Restar W-PORTA
+    SUBWF   PORTA, W        ; Restar PORTA - W 
     BTFSS   STATUS, 2       ; Revisar la resta
     RETURN		    ; Si no cumple
     CLRF    PORTA	    ; si, si cumple (limpiar puertoA)
     RETURN
 
 INT_TMR2:
-    BCF	    TMR2IF	    ; Limpiamos bandera de interrupcion de TMR1
+    BCF	    TMR2IF	    ; Limpiamos bandera de interrupcion de TMR2
     INCF    PORTB	    ; Incremento en PORTB
     RETURN
     
 ;-----------Tablas---------------------------
 ORG 200h
 Tabla:
-    CLRF    PCLATH		; Limpiamos registro PCLATH
-    BSF	    PCLATH, 1		; Posicionamos el PC en dirección 02xxh
-    ANDLW   0x0F		; No saltar más del tamaño de la tabla
+    CLRF    PCLATH	    ; Limpiamos registro PCLATH
+    BSF	    PCLATH, 1	    ; Posicionamos el PC en dirección 02xxh
+    ANDLW   0x0F	    ; No saltar más del tamaño de la tabla
     ADDWF   PCL
     RETLW   00111111B	;0
     RETLW   00000110B	;1
@@ -154,13 +154,13 @@ Main:
        
 ;----------------loop principal-----------------
 Loop:
-    MOVF    PORTA, W		; Valor del PORTA a W
-    MOVWF   valor		; Movemos W a variable valor
-    CALL    OBTENER_NUM  	; Guardamos decenas y unidades
-    CALL    SET_DISPLAY		; Guardamos los valores a enviar en PORTC para mostrar valor en decimal
-    CLRF    num			; Limpiar num
-    CLRF    num + 1		; Limpiar num+1
-    goto    Loop		    ; Loop 
+    MOVF    PORTA, W	    ; Valor del PORTA a W
+    MOVWF   valor	    ; Movemos W a variable valor
+    CALL    OBTENER_NUM     ; Guardamos decenas y unidades
+    CALL    SET_DISPLAY	    ; Guardamos los valores a enviar en PORTC para mostrar valor en decimal
+    CLRF    num		    ; Limpiar num
+    CLRF    num + 1	    ; Limpiar num+1
+    goto    Loop	    ; Loop 
     
 ;------------- SUBRUTINAS ---------------
 IO_config:
@@ -200,8 +200,8 @@ Timer0_config:
    BSF	    PS0	            ; PS0 Prescaler de 1 : 256
     
    BANKSEL  TMR0	    ; cambiamos de banco de TMR0
-   MOVLW    252 	    ; 1ms = 4*1/500kHz*(256-x)(256)
-   MOVWF    TMR0	    ; 10ms de retardo
+   MOVLW    252 	    ; 2ms = 4*1/500kHz*(256-x)(256)
+   MOVWF    TMR0	    ; 2ms de retardo
    BCF	    T0IF	    ; limpiamos bandera de interrupción
    RETURN 
    
@@ -256,7 +256,7 @@ OBTENER_NUM:
 	BTFSS  STATUS, 0    ; Verificar la resta
         GOTO   UNIDADES	    ; Vamos a unidades
 	MOVWF  valor	    ; mover valor a w al registro f
-	INCF   num 	    ; incrementamos el contador de centenas
+	INCF   num 	    ; incrementamos el contador de decenas
 	GOTO   DECENAS	    ; regresar a decenas
     
     UNIDADES:
@@ -265,7 +265,7 @@ OBTENER_NUM:
 	BTFSS  STATUS, 0    ; Verificar la resta
         RETURN
 	MOVWF  valor	    ; mover valor a w al registro f
-	INCF   num+1	    ; incrementamos el contador de centenas
+	INCF   num+1	    ; incrementamos el contador de unidades
 	GOTO   UNIDADES     ; regresar a unidades     
     
     
@@ -283,7 +283,7 @@ MOSTRAR_VALOR:
     BCF	    PORTD, 0		; Apagamos display de unidades
     BCF	    PORTD, 1		; Apagamos display de decenas
     BTFSC   banderas, 0		; Verificamos bandera
-    GOTO    DISPLAY_1		
+    GOTO    DISPLAY_1		; Ir al display 1
       
     DISPLAY_0:			
 	MOVF    display, W	; Movemos display a W
