@@ -172,8 +172,8 @@ IO_config:
     CLRF    TRISA	    ; PORTA como salida
     BCF     TRISB, 0	    ; PORTB como salida
     CLRF    TRISC	    ; Poner como salida
-    BCF	    TRISD, 0	    ; RD0 como salida / display nibble alto
-    BCF	    TRISD, 1	    ; RD1 como salida / display nibble bajo
+    BCF	    TRISD, 0	    ; RD0 como salida / display unidades
+    BCF	    TRISD, 1	    ; RD1 como salida / display decimales
             
     BANKSEL PORTA	    ; Cambiar de Banco
     CLRF    PORTA	    ; Limpiar PORTA
