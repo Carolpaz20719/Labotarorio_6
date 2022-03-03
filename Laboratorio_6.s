@@ -1,4 +1,4 @@
-; Archivo:	Prelab6.s
+; Archivo:	Laboratorio6.s
 ; Dispositivo:	PIC16F887
 ; Autor:	Carolina Paz 20719
 ; Compilador:	pic-as (v2.30), MPLABX V5.40
@@ -196,11 +196,11 @@ Timer0_config:
    BCF	    T0CS	    ; Timer0 como temporizador
    BCF	    PSA   	    ; Prescaler a TIMER0
    BSF	    PS2	            ; PS2
-   BSF	    PS1	            ; PS1
-   BSF	    PS0	            ; PS0 Prescaler de 1 : 256
+   BCF	    PS1	            ; PS1
+   BSF	    PS0	            ; PS0 Prescaler de 1 : 64
     
    BANKSEL  TMR0	    ; cambiamos de banco de TMR0
-   MOVLW    252 	    ; 2ms = 4*1/500kHz*(256-x)(256)
+   MOVLW    252 	    ; 2ms = 4*1/500kHz*(256-x)(64)
    MOVWF    TMR0	    ; 2ms de retardo
    BCF	    T0IF	    ; limpiamos bandera de interrupción
    RETURN 
